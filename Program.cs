@@ -1,5 +1,6 @@
 using AwesomeCompany;
 using AwesomeCompany.Entities;
+using AwesomeCompany.Models;
 using Dapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +63,23 @@ app.MapPut("companies-dapper/{companyId:int}", async (int companyId, DatabaseCon
     await dbContext.Database.CommitTransactionAsync();
 
     return Results.NoContent();
+});
+
+
+app.MapGet("companies/{companyId:int}", async (int companyId, DatabaseContext dbContext) =>
+{
+    var company = await dbContext
+    .Set<Company>()
+    .AsNoTracking()
+    .FirstOrDefaultAsync(c => c.Id == companyId);
+
+    if (company is null)
+    {
+        return Results.NotFound($"this comapny with Id '{companyId}' was not found.");
+    }
+
+    var response = new CompanyResponse(company.Id, company.Name);
+    return Results.Ok(response);
 });
 
 app.Run();
