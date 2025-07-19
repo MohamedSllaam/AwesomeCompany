@@ -1,7 +1,10 @@
 using AwesomeCompany;
 using AwesomeCompany.Entities;
+using Dapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.ComponentModel.Design;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<DatabaseContext>(
@@ -14,22 +17,51 @@ app.MapPut("companies/{companyId:int}", async (int companyId, DatabaseContext db
 {
     var company = await dbContext
     .Set<Company>()
-    .Include(x=>x.Employees)
-   // .AsNoTracking()
     .FirstOrDefaultAsync(c=>c.Id == companyId);
 
     if(company is null)
     {
         return Results.NotFound($"this comapny with Id '{companyId}' was not found.");
     }
-    foreach (var employee in company.Employees)
-    {
-        employee.Salary += 1.1m;
-    }
+   
+    await dbContext.Database.BeginTransactionAsync();
+
+    await dbContext.Database.ExecuteSqlInterpolatedAsync(
+        $"Update Employees set Salary= Salary * 1.1 where CompanyId = {company.Id}");
 
     company.LastSalaryUpdateUtc = DateTime.UtcNow;
 
-  await  dbContext.SaveChangesAsync();
+    await dbContext.SaveChangesAsync();
+
+    await dbContext.Database.CommitTransactionAsync();
+
     return Results.NoContent();
 });
+
+app.MapPut("companies-dapper/{companyId:int}", async (int companyId, DatabaseContext dbContext) =>
+{
+    var company = await dbContext
+    .Set<Company>()
+    .FirstOrDefaultAsync(c=>c.Id == companyId);
+
+    if(company is null)
+    {
+        return Results.NotFound($"this comapny with Id '{companyId}' was not found.");
+    }
+   
+   var transaction= await dbContext.Database.BeginTransactionAsync();
+
+    await dbContext.Database.GetDbConnection()
+        .ExecuteAsync(
+        "Update Employees set Salary= Salary * 1.1 where CompanyId=@CompanyId", new { CompanyId = company.Id },
+        transaction.GetDbTransaction());
+    company.LastSalaryUpdateUtc = DateTime.UtcNow;
+
+    await dbContext.SaveChangesAsync();
+
+    await dbContext.Database.CommitTransactionAsync();
+
+    return Results.NoContent();
+});
+
 app.Run();
