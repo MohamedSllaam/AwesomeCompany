@@ -11,7 +11,13 @@ using System.ComponentModel.Design;
 
 var builder = WebApplication.CreateBuilder(args);
  builder.Services.ConfigureOptions<DataBaseOptionsSetup>();
+ builder.Services.ConfigureOptions<ApplicationOptionsSetup>();
 
+//builder.Services
+//    .Configure<ApplicationOptions>(
+//    builder.Configuration
+//    .GetSection(nameof(ApplicationOptions))
+//    ); 
 
 builder.Services.AddDbContext<DatabaseContext>(
     (serviceProvider,dbContextBuilder) => {
@@ -97,4 +103,23 @@ app.MapGet("companies/{companyId:int}", async (int companyId, DatabaseContext db
     return Results.Ok(response);
 });
 
+app.MapGet("options",  
+    (IOptions<ApplicationOptions> options,
+    IOptionsSnapshot<ApplicationOptions> optionsSnapshot,
+    IOptionsMonitor<ApplicationOptions> optionsMonitor
+    ) =>
+{
+    var response = new
+    {
+        ///singlton , not refresh
+        optionsValue=options.Value.ExampleValue,
+        //scope refresh
+        optionsSnapshot = optionsSnapshot.Value.ExampleValue,
+        ///singlton , refresh -- read from config
+        MonitorValue = optionsMonitor.CurrentValue.ExampleValue
+
+         
+    };
+ return Results.Ok(response);
+});
 app.Run();
