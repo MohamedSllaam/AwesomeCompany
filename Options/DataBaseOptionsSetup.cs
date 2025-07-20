@@ -14,9 +14,11 @@ namespace AwesomeCompany.Options
 
         public void Configure(DataBaseOptions options)
         {
-           var connectionString = _configuration.GetConnectionString("Database");
+           var connectionString = _configuration.GetConnectionString("Database")!;
 
-            options.Co = connectionString;    
+            options.ConnectionString = connectionString;
+           
+            _configuration.GetSection(ConfiurationSectionName).Bind(options);
         }
     }
 }

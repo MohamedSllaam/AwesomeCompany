@@ -1,15 +1,30 @@
 using AwesomeCompany;
 using AwesomeCompany.Entities;
 using AwesomeCompany.Models;
+using AwesomeCompany.Options;
 using Dapper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using Microsoft.Extensions.Options;
 using System.ComponentModel.Design;
 
 var builder = WebApplication.CreateBuilder(args);
+ builder.Services.ConfigureOptions<DataBaseOptionsSetup>();
+
+
 builder.Services.AddDbContext<DatabaseContext>(
-    e => e.UseSqlServer(builder.Configuration.GetConnectionString("Database")));
+    (serviceProvider,dbContextBuilder) => {
+        var databaseOptions = serviceProvider.GetService<IOptions<DataBaseOptions>>()!.Value;
+
+        dbContextBuilder.UseSqlServer(databaseOptions.ConnectionString,sqlServerAction =>
+        {
+            sqlServerAction.EnableRetryOnFailure(databaseOptions.MaxRetryCount);
+            sqlServerAction.CommandTimeout(databaseOptions.CommandTimeOut);  
+        });
+        dbContextBuilder.EnableDetailedErrors(databaseOptions.EnableDetailedErrors);
+        dbContextBuilder.EnableSensitiveDataLogging(databaseOptions.EnableSensitiveDataLogging);
+    });
 
 var app = builder.Build();
 app.UseHttpsRedirection();

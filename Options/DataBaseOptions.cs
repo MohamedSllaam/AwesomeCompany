@@ -3,11 +3,10 @@
     public class DataBaseOptions
     {
         public string ConnectionString {  get; set; } =string.Empty;
-
-        public int DataMaxRetryCointbaseName { get; set; }
+        public int  MaxRetryCount { get; set; }
         public int CommandTimeOut { get; set; }
-        public int EnableDetailsErrors {  get; set; }
-        public int EnableSensitiveLogging {  get; set; }
+        public bool EnableDetailedErrors {  get; set; }
+        public bool EnableSensitiveDataLogging {  get; set; }
 
     }
 }
